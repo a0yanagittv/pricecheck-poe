@@ -22,24 +22,22 @@ def get_all_items(league="Mercenaries"):
 
     categories = [
         "UniqueWeapon", "UniqueArmour", "UniqueAccessory", "Flask",
-        "DivinationCard", "SkillGem", "BaseType", "UniqueMap",
-        "Map", "Oil", "Incubator", "Scarab", "Fossil", "Resonator",
-        "Essence", "Currency", "Vial", "DeliriumOrb", "Invitation",
-        "ClusterJewel", "Beast", "Fragment"
+        "DivinationCard", "SkillGem", "BaseType", "HelmetEnchant", "UniqueMap",
+        "Map", "Oil", "Incubator", "Scarab", "Fossil", "Resonator", "Essence",
+        "Currency", "Vial", "DeliriumOrb", "Invitation", "Watchstone",
+        "Contract", "Blueprint", "Component", "ClusterJewel", "Beast",
+        "MemoryLine", "KiracMod", "Sentinel", "Relic", "Fragment"
     ]
     items = []
     for category in categories:
         try:
             url = f"https://poe.ninja/api/data/itemoverview?league={league}&type={category}"
             data = requests.get(url).json()
-            if "lines" in data:
-                for i in data["lines"]:
-                    items.append({
-                        "name": i["name"],
-                        "chaosValue": i["chaosValue"]
-                    })
-            else:
-                logging.warning(f"Categoria sem 'lines': {category}")
+            for i in data["lines"]:
+                items.append({
+                    "name": i["name"],
+                    "chaosValue": i["chaosValue"]
+                })
         except Exception as e:
             logging.warning(f"Erro ao buscar categoria {category}: {e}")
             continue
