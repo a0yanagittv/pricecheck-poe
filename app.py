@@ -65,5 +65,31 @@ def pricecheck():
     items = get_all_items()
     normalized_input = normalize(item_input)
 
-    # 🟢 Tenta correspondência exata primeiro
-    exact_match = next((i for i in items if_
+    # 🔎 Busca exata primeiro
+    exact_match = next((i for i in items if i["normalized_name"] == normalized_input), None)
+
+    if exact_match:
+        item_data = exact_match
+    else:
+        # ⚠️ Se o input for muito curto, evita fuzzy para prevenir falsos positivos
+        if len(item_input) < 15 and len(item_input.split()) <= 2:
+            return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
+
+        choices = [i["normalized_name"] for i in items]
+        match = process.extractOne(normalized_input, choices, scorer=fuzz.WRatio)
+        if not match or match[1] < 85:
+            return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
+
+        matched_index = choices.index(match[0])
+        item_data = items[matched_index]
+
+    chaos = round(item_data["chaosValue"], 1)
+    div = round(chaos / divine_value, 1)
+
+    return (f"💰 {item_data['name']} → ~{chaos}c | ~{div} Divine "
+            f"(1 Divine ≈ {round(divine_value, 1)}c) [Mercenaries]")
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
