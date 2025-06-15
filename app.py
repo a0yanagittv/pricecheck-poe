@@ -1,61 +1,48 @@
 from flask import Flask, request
 import requests
 from rapidfuzz import process, fuzz
+import unicodedata
 import os
-import time
-import logging
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
 
-_item_cache = {"data": [], "timestamp": 0}
-CACHE_DURATION = 60  # segundos
 
 @app.route("/")
 def home():
-    return "✅ API online para !pricecheck"
+    return "API online para !pricecheck"
 
-def get_all_items(league="Mercenaries"):
-    now = time.time()
-    if now - _item_cache["timestamp"] < CACHE_DURATION:
-        return _item_cache["data"]
 
+def normalize(text):
+    """Remove acentos e caracteres especiais para facilitar matching"""
+    return ''.join(
+        c for c in unicodedata.normalize('NFKD', text)
+        if not unicodedata.combining(c)
+    ).lower()
+
+
+def get_all_items():
     categories = [
         "UniqueWeapon", "UniqueArmour", "UniqueAccessory", "Flask",
         "DivinationCard", "SkillGem", "BaseType", "HelmetEnchant", "UniqueMap",
         "Map", "Oil", "Incubator", "Scarab", "Fossil", "Resonator", "Essence",
-        "Currency", "Vial", "DeliriumOrb", "Invitation", "Watchstone",
-        "Contract", "Blueprint", "Component", "ClusterJewel", "Beast",
-        "MemoryLine", "KiracMod", "Sentinel", "Relic", "Fragment"
+        "Currency", "Vial", "DeliriumOrb", "Invitation",
+        "ClusterJewel", "Beast", "Fragment"
     ]
     items = []
     for category in categories:
         try:
-            url = f"https://poe.ninja/api/data/itemoverview?league={league}&type={category}"
+            url = f"https://poe.ninja/api/data/itemoverview?league=Mercenaries&type={category}"
             data = requests.get(url).json()
-            for i in data["lines"]:
+            for i in data.get("lines", []):
                 items.append({
                     "name": i["name"],
-                    "chaosValue": i["chaosValue"]
+                    "chaosValue": i["chaosValue"],
+                    "normalized_name": normalize(i["name"])
                 })
-        except Exception as e:
-            logging.warning(f"Erro ao buscar categoria {category}: {e}")
+        except Exception:
             continue
-
-    _item_cache["data"] = items
-    _item_cache["timestamp"] = now
     return items
 
-def get_divine_value(league="Mercenaries"):
-    try:
-        url = f"https://poe.ninja/api/data/currencyoverview?league={league}&type=Currency"
-        data = requests.get(url).json()
-        for c in data["lines"]:
-            if c["currencyTypeName"].lower() == "divine orb":
-                return c["chaosEquivalent"]
-    except Exception as e:
-        logging.warning(f"Erro ao buscar valor do Divine Orb: {e}")
-    return 180  # fallback
 
 @app.route("/pricecheck")
 def pricecheck():
@@ -63,25 +50,35 @@ def pricecheck():
     if not item_input:
         return "❌ Especifique um item: !pricecheck Mageblood"
 
-    league = request.args.get("league", "Mercenaries")
-    divine_value = get_divine_value(league)
-    items = get_all_items(league)
+    divine_value = 180
+    try:
+        currency_data = requests.get(
+            "https://poe.ninja/api/data/currencyoverview?league=Mercenaries&type=Currency"
+        ).json()
+        for c in currency_data["lines"]:
+            if c["currencyTypeName"].lower() == "divine orb":
+                divine_value = c["chaosEquivalent"]
+                break
+    except:
+        pass
 
-    choices = [i["name"] for i in items]
-    match = process.extractOne(item_input, choices, scorer=fuzz.WRatio)
+    items = get_all_items()
+
+    normalized_input = normalize(item_input)
+    choices = [i["normalized_name"] for i in items]
+    match = process.extractOne(normalized_input, choices, scorer=fuzz.WRatio)
     if not match or match[1] < 70:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
-    matched_name = match[0]
-    item_data = next((i for i in items if i["name"] == matched_name), None)
-    if not item_data:
-        return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
+    matched_index = choices.index(match[0])
+    item_data = items[matched_index]
 
     chaos = round(item_data["chaosValue"], 1)
     div = round(chaos / divine_value, 1)
 
-    return (f"💰 {matched_name} → ~{chaos}c | ~{div} Divine "
-            f"(1 Divine ≈ {round(divine_value, 1)}c) [{league}]")
+    return (f"💰 {item_data['name']} → ~{chaos}c | ~{div} Divine "
+            f"(1 Divine ≈ {round(divine_value, 1)}c) [Mercenaries]")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
