@@ -13,7 +13,7 @@ def home():
 
 
 def normalize(text):
-    """Remove acentos e caracteres especiais para facilitar matching"""
+    """Remove acentos e converte para minúsculas"""
     return ''.join(
         c for c in unicodedata.normalize('NFKD', text)
         if not unicodedata.combining(c)
@@ -63,23 +63,7 @@ def pricecheck():
         pass
 
     items = get_all_items()
-
     normalized_input = normalize(item_input)
-    choices = [i["normalized_name"] for i in items]
-    match = process.extractOne(normalized_input, choices, scorer=fuzz.WRatio)
-    if not match or match[1] < 70:
-        return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
-    matched_index = choices.index(match[0])
-    item_data = items[matched_index]
-
-    chaos = round(item_data["chaosValue"], 1)
-    div = round(chaos / divine_value, 1)
-
-    return (f"💰 {item_data['name']} → ~{chaos}c | ~{div} Divine "
-            f"(1 Divine ≈ {round(divine_value, 1)}c) [Mercenaries]")
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    # 🟢 Tenta correspondência exata primeiro
+    exact_match = next((i for i in items if_
