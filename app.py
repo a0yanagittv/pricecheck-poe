@@ -22,10 +22,6 @@ def normalize_str(text):
 def home():
     return "✅ API online para !pricecheck"
 
-@app.route("/status")
-def status():
-    return "OK"
-
 def get_all_items(league="Mercenaries"):
     now = time.time()
     if now - _item_cache["timestamp"] < CACHE_DURATION:
