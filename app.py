@@ -4,12 +4,19 @@ from rapidfuzz import process, fuzz
 import os
 import time
 import logging
+import unicodedata
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 _item_cache = {"data": [], "timestamp": 0}
 CACHE_DURATION = 60  # segundos
+
+def normalize_str(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    ).lower()
 
 @app.route("/")
 def home():
@@ -20,19 +27,20 @@ def get_all_items(league="Mercenaries"):
     if now - _item_cache["timestamp"] < CACHE_DURATION:
         return _item_cache["data"]
 
-    categories = ["UniqueWeapon", "UniqueArmour", "UniqueAccessory", "DivinationCard", "SkillGem", "BaseType",
-                  "UniqueMap", "Map", "Oil", "Incubator", "Scarab", "Fossil", "Resonator", "Essence", "Currency",
-                  "Vial", "DeliriumOrb", "Invitation", "ClusterJewel", "Beast", "Fragment"]
-
+    categories = [
+        "UniqueWeapon", "UniqueArmour", "UniqueAccessory",
+        "Flask", "DivinationCard", "SkillGem", "BaseType",
+        "UniqueMap", "Map", "Oil", "Incubator", "Scarab",
+        "Fossil", "Resonator", "Essence", "Currency", "Vial",
+        "DeliriumOrb", "Invitation", "ClusterJewel", "Beast",
+        "Fragment"
+    ]
     items = []
     for category in categories:
         try:
             url = f"https://poe.ninja/api/data/itemoverview?league={league}&type={category}"
             data = requests.get(url).json()
-            if "lines" not in data:
-                logging.warning(f"Categoria {category} não possui 'lines', pulando.")
-                continue
-            for i in data["lines"]:
+            for i in data.get("lines", []):
                 items.append({
                     "name": i["name"],
                     "chaosValue": i["chaosValue"]
@@ -49,7 +57,7 @@ def get_divine_value(league="Mercenaries"):
     try:
         url = f"https://poe.ninja/api/data/currencyoverview?league={league}&type=Currency"
         data = requests.get(url).json()
-        for c in data["lines"]:
+        for c in data.get("lines", []):
             if c["currencyTypeName"].lower() == "divine orb":
                 return c["chaosEquivalent"]
     except Exception as e:
@@ -67,11 +75,16 @@ def pricecheck():
     items = get_all_items(league)
 
     choices = [i["name"] for i in items]
-    match = process.extractOne(item_input, choices, scorer=fuzz.WRatio)
+    choices_norm = [normalize_str(name) for name in choices]
+    item_input_norm = normalize_str(item_input)
+
+    match = process.extractOne(item_input_norm, choices_norm, scorer=fuzz.WRatio)
     if not match or match[1] < 70:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
-    matched_name = match[0]
+    matched_norm = match[0]
+    index = choices_norm.index(matched_norm)
+    matched_name = choices[index]
     item_data = next((i for i in items if i["name"] == matched_name), None)
     if not item_data:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
