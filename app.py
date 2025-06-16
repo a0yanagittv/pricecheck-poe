@@ -22,7 +22,7 @@ def get_all_items(league="Mercenaries"):
 
     categories = ["UniqueWeapon", "UniqueArmour", "UniqueAccessory", "DivinationCard", "SkillGem", "BaseType",
                   "UniqueMap", "Map", "Oil", "Incubator", "Scarab", "Fossil", "Resonator", "Essence", "Currency",
-                  "Vial", "DeliriumOrb", "Invitation", "ClusterJewel", "Beast", "Fragment", "Prophecy"]
+                  "Vial", "DeliriumOrb", "Invitation", "ClusterJewel", "Beast", "Fragment"]
 
     items = []
     for category in categories:
