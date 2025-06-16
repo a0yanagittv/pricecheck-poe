@@ -78,16 +78,22 @@ def pricecheck():
     choices_norm = [normalize_str(name) for name in choices]
     item_input_norm = normalize_str(item_input)
 
-    match = process.extractOne(item_input_norm, choices_norm, scorer=fuzz.WRatio)
-    if not match or match[1] < 70:
-        return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
+    # Melhor comparação fuzzy e sugestões
+    matches = process.extract(item_input_norm, choices_norm, scorer=fuzz.WRatio, limit=3)
+    best_match = matches[0] if matches else None
 
-    matched_norm = match[0]
+    if not best_match or best_match[1] < 85:
+        suggestions = [choices[choices_norm.index(m[0])] for m in matches if m[1] >= 60]
+        suggestion_str = f" Talvez você quis dizer: {', '.join(suggestions)}." if suggestions else ""
+        return f"❌ Item '{item_input}' não encontrado.{suggestion_str}"
+
+    matched_norm = best_match[0]
     index = choices_norm.index(matched_norm)
     matched_name = choices[index]
     item_data = next((i for i in items if i["name"] == matched_name), None)
+
     if not item_data:
-        return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
+        return f"❌ Item '{item_input}' não encontrado."
 
     chaos = round(item_data["chaosValue"], 1)
     div = round(chaos / divine_value, 1)
