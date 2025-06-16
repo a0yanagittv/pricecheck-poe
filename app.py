@@ -83,17 +83,12 @@ def pricecheck():
     item_input_norm = normalize_str(item_input)
 
     match = process.extractOne(item_input_norm, choices_norm, scorer=fuzz.WRatio)
-    if not match:
+    if not match or match[1] < 70:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
-    matched_norm, score = match[0], match[1]
+    matched_norm = match[0]
     index = choices_norm.index(matched_norm)
-    sugestao = choices[index]
-
-    if score < 80:
-        return f"❌ Item '{item_input}' não encontrado. Talvez você quis dizer: {sugestao}."
-
-    matched_name = sugestao
+    matched_name = choices[index]
     item_data = next((i for i in items if i["name"] == matched_name), None)
     if not item_data:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
