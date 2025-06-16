@@ -22,6 +22,10 @@ def normalize_str(text):
 def home():
     return "✅ API online para !pricecheck"
 
+@app.route("/status")
+def status():
+    return "OK"
+
 def get_all_items(league="Mercenaries"):
     now = time.time()
     if now - _item_cache["timestamp"] < CACHE_DURATION:
@@ -80,21 +84,6 @@ def pricecheck():
 
     match = process.extractOne(item_input_norm, choices_norm, scorer=fuzz.WRatio)
     if not match or match[1] < 70:
-        # Sugerir até 3 alternativas distintas
-        matches = process.extract(item_input_norm, choices_norm, scorer=fuzz.WRatio, limit=10)
-        seen = set()
-        suggestions = []
-        for m in matches:
-            if m[1] >= 60:
-                suggestion = choices[choices_norm.index(m[0])]
-                if suggestion not in seen:
-                    seen.add(suggestion)
-                    suggestions.append(suggestion)
-            if len(suggestions) >= 3:
-                break
-
-        if suggestions:
-            return f"❌ Item '{item_input}' não encontrado. Talvez você quis dizer: {', '.join(suggestions)}."
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
     matched_norm = match[0]
