@@ -87,12 +87,13 @@ def pricecheck():
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
 
     matched_norm, score = match[0], match[1]
-    if score < 70:
-        sugestao = choices[choices_norm.index(matched_norm)]
-        return (f"❌ Item '{item_input}' não encontrado. Talvez você quis dizer: {sugestao}.")
-
     index = choices_norm.index(matched_norm)
-    matched_name = choices[index]
+    sugestao = choices[index]
+
+    if score < 80:
+        return f"❌ Item '{item_input}' não encontrado. Talvez você quis dizer: {sugestao}."
+
+    matched_name = sugestao
     item_data = next((i for i in items if i["name"] == matched_name), None)
     if not item_data:
         return f"❌ Item '{item_input}' não encontrado. Verifique o nome e tente novamente."
