@@ -92,8 +92,8 @@ def pricecheck():
     chaos = round(item_data["chaosValue"], 1)
     div = round(chaos / divine_value, 1)
 
-    return (f"💸 '{matched_name}' está valendo cerca de 💰 {chaos:.0f} Chaos Orbs ou ✨ {div} Divine Orbs. "
-        f"(📊 1 Divine ≈ {round(divine_value, 1)} Chaos – Liga: {league})")
+    return (f"{matched_name} → 💰 {chaos:.0f} Chaos | ✨ {div} Divine "
+        f"(📊 1 Divine ≈ {round(divine_value, 1)} Chaos) [{league}]")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
